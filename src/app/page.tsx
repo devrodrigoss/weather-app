@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, MapPin, Wind, Droplets, Eye, Gauge, Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, Zap, CloudFog } from 'lucide-react';
 import axios from 'axios';
 import { format } from 'date-fns';
@@ -42,8 +42,16 @@ interface ForecastData {
   }>;
 }
 
+interface DailyForecast {
+  date: number;
+  temps: number[];
+  weather: string;
+  description: string;
+  temp_min: number;
+  temp_max: number;
+}
+
 export default function WeatherApp() {
-  const [city, setCity] = useState('Santiago');
   const [searchInput, setSearchInput] = useState('');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
@@ -53,11 +61,7 @@ export default function WeatherApp() {
   const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
   const API_URL = process.env.NEXT_PUBLIC_WEATHER_API_URL;
 
-  useEffect(() => {
-    fetchWeather('Santiago');
-  }, []);
-
-  const fetchWeather = async (cityName: string) => {
+  const fetchWeather = useCallback(async (cityName: string) => {
     if (!API_KEY) {
       setError('API Key no configurada. Por favor agrega tu API key de OpenWeather en .env.local');
       return;
@@ -79,21 +83,28 @@ export default function WeatherApp() {
 
       setWeather(weatherResponse.data);
       setForecast(forecastResponse.data);
-      setCity(cityName);
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        setError('Ciudad no encontrada. Intenta con otro nombre.');
-      } else if (err.response?.status === 401) {
-        setError('API Key inválida. Verifica tu configuración.');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 404) {
+          setError('Ciudad no encontrada. Intenta con otro nombre.');
+        } else if (err.response?.status === 401) {
+          setError('API Key inválida. Verifica tu configuración.');
+        } else {
+          setError('Error al obtener datos del clima. Intenta nuevamente.');
+        }
       } else {
-        setError('Error al obtener datos del clima. Intenta nuevamente.');
+        setError('Error inesperado al obtener datos del clima.');
       }
       setWeather(null);
       setForecast(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_KEY, API_URL]);
+
+  useEffect(() => {
+    fetchWeather('Santiago');
+  }, [fetchWeather]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,10 +128,10 @@ export default function WeatherApp() {
     return icons[weatherMain] || <Cloud className="w-20 h-20 text-gray-400" />;
   };
 
-  const getDailyForecasts = () => {
+  const getDailyForecasts = (): DailyForecast[] => {
     if (!forecast) return [];
     
-    const dailyData: { [key: string]: any } = {};
+    const dailyData: { [key: string]: DailyForecast } = {};
     
     forecast.list.forEach((item) => {
       const date = format(new Date(item.dt * 1000), 'yyyy-MM-dd');
@@ -131,17 +142,17 @@ export default function WeatherApp() {
           temps: [item.main.temp],
           weather: item.weather[0].main,
           description: item.weather[0].description,
+          temp_min: item.main.temp,
+          temp_max: item.main.temp
         };
       } else {
         dailyData[date].temps.push(item.main.temp);
+        dailyData[date].temp_min = Math.min(dailyData[date].temp_min, item.main.temp);
+        dailyData[date].temp_max = Math.max(dailyData[date].temp_max, item.main.temp);
       }
     });
 
-    return Object.values(dailyData).slice(0, 5).map((day: any) => ({
-      ...day,
-      temp_min: Math.min(...day.temps),
-      temp_max: Math.max(...day.temps),
-    }));
+    return Object.values(dailyData).slice(0, 5);
   };
 
   return (
