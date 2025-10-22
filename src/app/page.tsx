@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useWeather } from '@/hooks/useWeather';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useFavoriteCities } from '@/hooks/useLocalStorage';
@@ -9,6 +9,7 @@ import { CurrentWeather } from '@/components/CurrentWeather';
 import { ForecastCard } from '@/components/ForecastCard';
 import { TemperatureChart } from '@/components/TemperatureChart';
 import { WeatherDetails } from '@/components/WeatherDetails';
+import { WeatherMap } from '@/components/WeatherMap';
 import { CurrentWeatherSkeleton, ForecastSkeleton } from '@/components/LoadingSkeleton';
 
 export default function WeatherApp() {
@@ -28,18 +29,17 @@ export default function WeatherApp() {
 
   // Cargar Santiago por defecto
   useEffect(() => {
-    const fetchInitialWeather = () => {
-      fetchWeatherByCity('Santiago');
-    };
-    fetchInitialWeather();
-  }, [fetchWeatherByCity]);
+    fetchWeatherByCity('Santiago');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Cuando obtengamos coords, buscar clima
   useEffect(() => {
     if (coords) {
       fetchWeatherByCoords(coords.lat, coords.lon);
     }
-  }, [coords,fetchWeatherByCoords]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords]);
 
   const handleSearch = (cityName: string) => {
     fetchWeatherByCity(cityName);
@@ -66,7 +66,7 @@ export default function WeatherApp() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-            ☁️ Weather Forecast 
+            ☁️ Weather Forecast Pro
           </h1>
           <p className="text-blue-200">
             Consulta el clima con datos en tiempo real y pronósticos detallados
@@ -117,8 +117,16 @@ export default function WeatherApp() {
           {!loading && (airQuality || uvIndex) && (
             <WeatherDetails airQuality={airQuality} uvIndex={uvIndex} />
           )}
-        </div>
 
+          {/* Weather Map */}
+          {!loading && weather && (
+            <WeatherMap
+              center={weather.coord}
+              cityName={weather.name}
+              country={weather.sys.country}
+            />
+          )}
+        </div>
 
         {/* Footer */}
         <div className="text-center mt-12 text-blue-200 text-sm">
@@ -128,7 +136,7 @@ export default function WeatherApp() {
               href="https://openweathermap.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-white"
+              className="underline hover:text-white transition-colors"
             >
               OpenWeather API
             </a>

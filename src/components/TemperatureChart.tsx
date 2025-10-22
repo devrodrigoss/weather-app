@@ -1,19 +1,13 @@
 import React from 'react';
 import { ForecastData } from '@/types/weather.types';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  TooltipProps
-} from 'recharts';
-import { formatTemp, formatTime } from '@/utils/formatters';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, Line } from 'recharts';
+import { formatTime } from '@/utils/formatters';
 import { motion } from 'framer-motion';
 
-// Definición de tipos para los datos del gráfico
+interface TemperatureChartProps {
+  forecast: ForecastData;
+}
+
 interface ChartDataPoint {
   time: string;
   temperatura: number;
@@ -21,18 +15,14 @@ interface ChartDataPoint {
   humedad: number;
 }
 
-// Interfaz para el componente personalizado del tooltip
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    value: number | string;
-    payload: ChartDataPoint;
-  }>;
-  label?: string;
+interface TooltipPayload {
+  value: number;
+  payload: ChartDataPoint;
 }
 
-interface TemperatureChartProps {
-  forecast: ForecastData;
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
 }
 
 export const TemperatureChart: React.FC<TemperatureChartProps> = ({ forecast }) => {
@@ -44,8 +34,8 @@ export const TemperatureChart: React.FC<TemperatureChartProps> = ({ forecast }) 
     humedad: item.main.humidity,
   }));
 
-  // Custom tooltip con tipos específicos
-  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  // Custom tooltip
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-800/95 backdrop-blur-md border border-white/20 rounded-xl p-4 shadow-xl">
@@ -54,7 +44,7 @@ export const TemperatureChart: React.FC<TemperatureChartProps> = ({ forecast }) 
             Temperatura: <span className="font-bold">{payload[0].value}°C</span>
           </p>
           <p className="text-purple-300 text-sm">
-            Sensación: <span className="font-bold">{payload[1]?.value}°C</span>
+            Sensación: <span className="font-bold">{payload[1].value}°C</span>
           </p>
           <p className="text-cyan-300 text-sm">
             Humedad: <span className="font-bold">{payload[0].payload.humedad}%</span>
@@ -105,7 +95,7 @@ export const TemperatureChart: React.FC<TemperatureChartProps> = ({ forecast }) 
             <YAxis 
               stroke="#93c5fd"
               style={{ fontSize: '12px' }}
-              tickFormatter={(value) => `${value}°`}
+              tickFormatter={(value: number) => `${value}°`}
             />
             
             <Tooltip content={<CustomTooltip />} />
@@ -121,11 +111,10 @@ export const TemperatureChart: React.FC<TemperatureChartProps> = ({ forecast }) 
             />
             
             {/* Línea de sensación térmica */}
-            <Area
+            <Line
               type="monotone"
               dataKey="sensacion"
               stroke="#a855f7"
-              fill="url(#colorFeels)"
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={{ fill: '#a855f7', r: 4 }}

@@ -5,32 +5,30 @@ import { WeatherIcon } from '@/utils/weatherIcons';
 import { motion } from 'framer-motion';
 import { Droplets } from 'lucide-react';
 
-// Interfaz para los datos diarios del pronóstico
-interface DailyForecastItem {
-  dt: number;
-  temps: number[];
-  tempMin: number;
-  tempMax: number;
-  weather: {
-    id: number;
-    main: string;
-    description: string;
-    icon: string;
-  };
-  pop: number; // Probability of precipitation
-  humidity: number;
-  wind: number;
-}
-
 interface ForecastCardProps {
   forecast: ForecastData;
 }
 
 export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
-  // Agrupar pronósticos por día con tipos específicos
+  // Agrupar pronósticos por día
   const getDailyForecasts = () => {
-    // ✅ Usar tipos específicos en lugar de any
-    const dailyData: Record<string, DailyForecastItem> = {};
+    interface DailyForecast {
+      dt: number;
+      temps: number[];
+      tempMin: number;
+      tempMax: number;
+      weather: {
+        id: number;
+        main: string;
+        description: string;
+        icon: string;
+      };
+      pop: number;
+      humidity: number;
+      wind: number;
+    }
+
+    const dailyData: { [key: string]: DailyForecast } = {};
     
     forecast.list.forEach((item) => {
       const date = new Date(item.dt * 1000).toDateString();
@@ -42,7 +40,7 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
           tempMin: item.main.temp_min,
           tempMax: item.main.temp_max,
           weather: item.weather[0],
-          pop: item.pop,
+          pop: item.pop, // Probability of precipitation
           humidity: item.main.humidity,
           wind: item.wind.speed,
         };
